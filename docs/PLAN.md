@@ -4,7 +4,7 @@ Approved 2026-06-18.
 
 ## Goal
 
-Build `cursor-skill-toggle`: a minimal CLI to enable/disable skills for **Cursor IDE + CLI** without deleting shared skill files, achieving **full removal** of disabled skills from Cursor's agent context at session start.
+Build `cst`: a minimal CLI to enable/disable skills for **Cursor IDE + CLI** without deleting shared skill files, achieving **full removal** of disabled skills from Cursor's agent context at session start.
 
 ## Problem
 
@@ -41,13 +41,13 @@ A registry at `~/.cursor/skills-registry.json` holds user intent; `sync` applies
 
 ## Commands
 
-Install binary to `~/.local/bin/cursor-skill-toggle` (e.g. `cargo install --path .` or copy release build).
+Install binary to `~/.local/bin/cst` (e.g. `cargo install --path .` or copy release build).
 
 | Command | Purpose |
 |---------|---------|
-| `cursor-skill-toggle` | Interactive TUI — filter, toggle skills, save registry |
-| `cursor-skill-toggle sync` | Apply registry → `SKILL.md` frontmatter on disk |
-| `cursor-skill-toggle doctor` | Report orphans, drift, missing `SKILL.md`, broken state |
+| `cst` | Interactive TUI — filter, toggle skills, save registry |
+| `cst sync` | Apply registry → `SKILL.md` frontmatter on disk |
+| `cst doctor` | Report orphans, drift, missing `SKILL.md`, broken state |
 
 ## Registry schema
 
@@ -105,14 +105,14 @@ All reported as warnings. Exit code always 0.
 
 `npx skills` always writes to `~/.agents/skills/<name>/` and owns `~/.agents/.skill-lock.json`.
 
-- `npx skills add` installs as enabled until you disable via `cursor-skill-toggle`
-- `npx skills update` recreates canonical dirs and may reset frontmatter — run `cursor-skill-toggle sync` after
+- `npx skills add` installs as enabled until you disable via `cst`
+- `npx skills update` recreates canonical dirs and may reset frontmatter — run `cst sync` after
 
 Recommended shell wrappers:
 
 ```bash
-skills-add()   { npx skills add "$@" && cursor-skill-toggle sync; }
-skills-update() { npx skills update "$@" && cursor-skill-toggle sync; }
+skills-add()   { npx skills add "$@" && cst sync; }
+skills-update() { npx skills update "$@" && cst sync; }
 ```
 
 Do not move canonical skills out of `~/.agents/skills/`. Do not edit `.skill-lock.json` manually.
@@ -120,7 +120,7 @@ Do not move canonical skills out of `~/.agents/skills/`. Do not edit `.skill-loc
 ## Out of scope (v1)
 
 - Import/seed from Grok or other agent configs
-- `cursor-skill-toggle init`, `enable`, `disable`, `list` subcommands
+- `cst init`, `enable`, `disable`, `list` subcommands
 - Built-in skills (`~/.cursor/skills-cursor/`)
 - Plugin-delivered skills
 - Project-level `.cursor/skills/` in repos
@@ -133,7 +133,7 @@ Do not move canonical skills out of `~/.agents/skills/`. Do not edit `.skill-loc
 - [x] Lazy init writes registry on first command and imports `disable-model-invocation` as disabled
 - [x] `sync` applies registry to frontmatter with atomic writes; prunes orphan registry keys
 - [x] `doctor` emits six warning types; always exits 0
-- [ ] `cursor-skill-toggle doctor` reports clean state after `sync` (manual)
+- [ ] `cst doctor` reports clean state after `sync` (manual)
 - [ ] Disabled skills absent from Cursor Settings → Rules count (manual)
 - [ ] Disabled skills absent from CLI `/` menu (new session) (manual)
-- [ ] `npx skills update` + `cursor-skill-toggle sync` restores disable state (manual)
+- [ ] `npx skills update` + `cst sync` restores disable state (manual)

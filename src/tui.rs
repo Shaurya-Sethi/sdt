@@ -84,7 +84,7 @@ pub fn run_tui() -> Result<(), TuiError> {
     }
 
     write(&registry)?;
-    println!("Registry saved. Run `cst sync` to apply changes.");
+    println!("Registry saved. Run `sdt sync` to apply changes.");
     Ok(())
 }
 

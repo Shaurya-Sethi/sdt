@@ -1,7 +1,8 @@
-//! `cursor-skill-toggle` library — manage Cursor skill enable/disable state.
+//! Skill Discovery Toggle — manage shared agent skill enable/disable state.
 //!
-//! Registry at `~/.cursor/skills-registry.json` is the source of truth for user
+//! Registry at `~/.agents/skills-registry.json` is the source of truth for user
 //! intent; [`sync`] applies it to `SKILL.md` frontmatter under `~/.agents/skills/`.
+//! Agents must honor `disable-model-invocation` for the toggle to take effect.
 
 pub mod discovery;
 pub mod doctor;

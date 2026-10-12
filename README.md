@@ -1,12 +1,14 @@
-# cursor-skill-toggle
+# sdt — Skill Discovery Toggle
 
-Enable and disable Cursor agent skills without deleting them. Skills stay in the shared store at `~/.agents/skills/` (used by `npx skills` and other agents); `cst` controls which ones load into Cursor's agent context at session start.
+An agent-agnostic CLI to enable and disable automatic skill discovery without deleting shared skill files.
+
+Skills stay in `~/.agents/skills/`. `sdt` records your choices in a registry and applies them through `disable-model-invocation` in each skill's `SKILL.md`.
+
+**Agent compatibility matters:** the toggle works only for agents that read this store (directly or through symlinks) and honor that frontmatter field. It is not a universal agent-disable mechanism or a per-agent setting.
 
 ## Why
 
-Cursor discovers every skill under `~/.agents/skills/` and loads skill descriptions into context on each session. With dozens of skills installed, that adds up fast. Cursor has no built-in per-skill disable — only deletion — which breaks a shared skill store across agents.
-
-`cst` fixes this by toggling `disable-model-invocation: true` in each skill's `SKILL.md`. Disabled skills stop contributing descriptions to agent context. Your skill files stay on disk and remain available to other tools that read the same store.
+Installed skills can add descriptions to agent context even when you rarely use them. Keep one shared skill store, choose which skills are available for automatic invocation, and restore those choices after skill updates.
 
 ## Install
 
@@ -14,42 +16,42 @@ Cursor discovers every skill under `~/.agents/skills/` and loads skill descripti
 cargo install --path .
 ```
 
-The binary lands in `~/.cargo/bin/cst`. Ensure that directory is on your `PATH`, or copy the release build to `~/.local/bin/`.
+The binary lands in `~/.cargo/bin/sdt`. Ensure that directory is on your `PATH`, or copy the release build to `~/.local/bin/`.
 
 Build from source:
 
 ```bash
 cargo build --release
-# binary at target/release/cst
+# binary at target/release/sdt
 ```
 
 ## Quick start
 
 ```bash
-cst          # interactive toggle — saves to registry
-cst sync     # apply registry → SKILL.md on disk
-cst doctor   # check for drift or orphans
+sdt          # interactive toggle — saves to registry
+sdt sync     # apply registry → SKILL.md on disk
+sdt doctor   # check for drift or orphans
 ```
 
-1. Run `cst` to enable/disable skills interactively.
-2. Run `cst sync` to write changes to `SKILL.md` frontmatter.
-3. Start a new Cursor agent session to pick up the change.
+1. Run `sdt` to enable/disable skills interactively.
+2. Run `sdt sync` to write changes to `SKILL.md` frontmatter.
+3. Reload skills or start a new agent session, depending on your agent.
 
 The TUI updates the registry only. You must run `sync` to apply changes to disk.
 
 ## Commands
 
-### `cst`
+### `sdt`
 
 Interactive checklist of skills that have a `SKILL.md` file.
 
 - Optional filter: case-insensitive substring on folder name (press Enter for all).
-- Checked items are **enabled**; unchecked are **disabled**.
+- Checked items are **enabled**; unchecked are **disabled** for automatic invocation in compatible agents.
 - Confirm to save the registry; cancel discards changes.
 
-### `cst sync`
+### `sdt sync`
 
-Reads `~/.cursor/skills-registry.json` and updates each skill's `SKILL.md`:
+Reads `~/.agents/skills-registry.json` and updates each skill's `SKILL.md`:
 
 - **Disabled** — sets `disable-model-invocation: true` in frontmatter. If the file has no frontmatter, prepends a minimal block with `name` and the flag.
 - **Enabled** — removes the flag. If the frontmatter block was injection-only, strips it entirely.
@@ -57,7 +59,7 @@ Reads `~/.cursor/skills-registry.json` and updates each skill's `SKILL.md`:
 
 Other frontmatter fields (`description`, `paths`, etc.) are preserved.
 
-### `cst doctor`
+### `sdt doctor`
 
 Prints warnings for inconsistent state. Always exits 0 — informational only.
 
@@ -72,43 +74,48 @@ Prints warnings for inconsistent state. Always exits 0 — informational only.
 
 ## How it works
 
-```
-cst (TUI)  →  ~/.cursor/skills-registry.json  →  cst sync  →  ~/.agents/skills/*/SKILL.md
+```text
+sdt (TUI) → ~/.agents/skills-registry.json → sdt sync → ~/.agents/skills/*/SKILL.md
 ```
 
-- **Registry** (`~/.cursor/skills-registry.json`) holds your intent: which skills are enabled.
-- **Sync** applies that intent to `SKILL.md` frontmatter on disk.
-- **Cursor** reads `SKILL.md` at session start and skips disabled skills from context.
+- **Registry** holds your intent: which skills are enabled.
+- **Sync** applies that intent to shared files on disk.
+- **Compatible agents** interpret the frontmatter when loading skills.
 
 On first run of any command, the registry is created automatically by scanning `~/.agents/skills/`. Skills with `disable-model-invocation: true` are imported as disabled; everything else defaults to enabled. New skill folders are merged in on later runs.
 
+## Agent compatibility
+
+`disable-model-invocation` is an agent extension, not a field in the core [Agent Skills specification](https://agentskills.io/specification).
+
+- Agents honoring the field can exclude disabled skills from automatic invocation. Manual invocation may remain available; this is not an access-control boundary.
+- Agents ignoring the field will continue discovering skills normally.
+- Agents using separate skill stores are unaffected unless those stores point to these same files.
+- Every compatible agent reading the shared files sees the same choices; `sdt` does not maintain per-agent profiles or edit agent configuration.
+
+For example, [Claude Code documents this field](https://code.claude.com/docs/en/skills#control-who-invokes-a-skill), while [Codex documents its own configuration-based toggle](https://developers.openai.com/codex/skills/). Check your agent's documentation rather than assuming support.
+
 ## Working with `npx skills`
 
-`npx skills` installs to `~/.agents/skills/<name>/` and owns `~/.agents/.skill-lock.json`. `cst` does not touch the lock file.
+`npx skills` installs to `~/.agents/skills/<name>/` and owns `~/.agents/.skill-lock.json`. `sdt` does not touch the lock file.
 
-- **`npx skills add`** — new skills default to enabled until you disable them in `cst`.
-- **`npx skills update`** — may reset frontmatter. Run `cst sync` afterward to restore disable state from the registry.
+- **`npx skills add`** — new skills default to enabled until you disable them in `sdt`.
+- **`npx skills update`** — may reset frontmatter. Run `sdt sync` afterward to restore disable state from the registry.
 
 Recommended shell helpers:
 
 ```bash
-skills-add()    { npx skills add "$@" && cst sync; }
-skills-update() { npx skills update "$@" && cst sync; }
+skills-add()    { npx skills add "$@" && sdt sync; }
+skills-update() { npx skills update "$@" && sdt sync; }
 ```
 
 Do not move skills out of `~/.agents/skills/` or edit `.skill-lock.json` by hand.
 
-## Cross-agent note
+## Scope
 
-Skills live in a shared store. Writing `disable-model-invocation` in `SKILL.md` affects any agent that reads those files (Grok, Codex, etc.), not just Cursor. That tradeoff keeps one canonical copy compatible with `npx skills`.
-
-## What's not covered (v1)
-
-- Built-in Cursor skills (`~/.cursor/skills-cursor/`)
-- Plugin-delivered skills
-- Project-level `.cursor/skills/` in repos
-- Importing disable state from Grok or other agent configs
-- `enable` / `disable` / `list` subcommands
+- Immediate, non-hidden skill directories in `~/.agents/skills/` only.
+- No built-in, plugin-delivered, project-level, or separate agent-specific stores.
+- No importing or writing agent configuration, per-agent profiles, or `enable` / `disable` / `list` subcommands.
 
 ## Development
 

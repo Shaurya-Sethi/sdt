@@ -12,9 +12,9 @@ pub fn canonical_skills_dir() -> io::Result<PathBuf> {
     Ok(home_dir()?.join(".agents").join("skills"))
 }
 
-/// Returns the registry file path: `$HOME/.cursor/skills-registry.json`.
+/// Returns the registry file path: `$HOME/.agents/skills-registry.json`.
 pub fn registry_path() -> io::Result<PathBuf> {
-    Ok(home_dir()?.join(".cursor").join("skills-registry.json"))
+    Ok(home_dir()?.join(".agents").join("skills-registry.json"))
 }
 
 fn home_dir() -> io::Result<PathBuf> {
@@ -59,7 +59,7 @@ mod tests {
         assert_eq!(skills, tmp.path().join(".agents").join("skills"));
         assert_eq!(
             registry,
-            tmp.path().join(".cursor").join("skills-registry.json")
+            tmp.path().join(".agents").join("skills-registry.json")
         );
     }
 

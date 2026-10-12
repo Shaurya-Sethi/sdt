@@ -1,11 +1,11 @@
-//! `cursor-skill-toggle` CLI — toggle, sync, and diagnose Cursor skill state.
+//! `sdt` CLI — toggle, sync, and diagnose shared agent skill state.
 
 use clap::{Parser, Subcommand};
-use cursor_skill_toggle::{run_doctor, run_sync, run_tui, tui::TuiError};
+use sdt::{run_doctor, run_sync, run_tui, tui::TuiError};
 
-/// Manage Cursor skill enable/disable via registry and SKILL.md frontmatter.
+/// Skill Discovery Toggle: manage shared agent skills via SKILL.md frontmatter.
 #[derive(Parser)]
-#[command(name = "cst", version, about)]
+#[command(name = "sdt", version, about)]
 struct Cli {
     #[command(subcommand)]
     command: Option<Command>,

@@ -1,6 +1,6 @@
 # Repo guidelines
 
-- this repo implements `cst`: a minimal CLI to enable/disable skill discovery for agents without deleting shared skill files.
+- this repo implements `sdt` (Skill Discovery Toggle): an agent-agnostic CLI to enable/disable skill discovery without deleting shared skill files. Agent support depends on honoring `disable-model-invocation`.
 
 - use `cargo` for building, testing, and linting.
 - follow normal rust style, keep codebase `rustfmt` -clean.

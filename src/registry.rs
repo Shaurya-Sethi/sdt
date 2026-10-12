@@ -22,7 +22,7 @@ pub struct SkillEntry {
     pub enabled: bool,
 }
 
-/// On-disk registry at `~/.cursor/skills-registry.json`.
+/// On-disk registry at `~/.agents/skills-registry.json`.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Registry {
     pub version: u32,

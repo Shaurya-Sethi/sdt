@@ -51,7 +51,8 @@ Interactive checklist of skills that have a `SKILL.md` file, shown immediately.
 | `Space` | Toggle skill |
 | `/` | Filter by folder name (case-insensitive substring); `Enter` applies, `Esc` clears |
 | `Enter` | Save (after confirmation) |
-| `q`, `Esc` | Quit without saving |
+| `Esc` | Clear the applied filter, or quit without saving if none |
+| `q` | Quit without saving |
 
 - Checked items are **enabled**; unchecked are **disabled** for automatic invocation in compatible agents.
 - Toggles persist across filter changes; saving writes every skill's state.

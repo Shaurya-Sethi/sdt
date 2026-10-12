@@ -112,8 +112,9 @@ enum Outcome {
 /// Terminal-free checklist state: `names[i]` is toggled by `enabled[i]`, and
 /// `cursor` indexes into the currently visible (filtered) subset.
 ///
-/// In browse mode, keys navigate and toggle; in filter mode (entered with `/`)
-/// printable keys edit `query`, Enter keeps it, and Esc clears it.
+/// In browse mode, keys navigate and toggle, and Esc clears an applied filter
+/// before it quits; in filter mode (entered with `/`) printable keys edit
+/// `query`, Enter keeps it, and Esc clears it.
 struct Picker {
     names: Vec<String>,
     enabled: Vec<bool>,
@@ -174,6 +175,10 @@ impl Picker {
             }
             Key::Char('/') => self.filtering = true,
             Key::Enter => return Some(Outcome::Save),
+            Key::Escape if !self.query.is_empty() => {
+                self.query.clear();
+                self.cursor = 0;
+            }
             Key::Char('q') | Key::Escape => return Some(Outcome::Quit),
             _ => {}
         }
@@ -183,34 +188,90 @@ impl Picker {
     /// Lines to draw for a terminal of `rows` x `cols`, scrolling the list so
     /// the cursor stays on screen and truncating lines so none wrap.
     fn render(&self, rows: usize, cols: usize) -> Vec<String> {
-        let mut lines = vec![style("space toggle · / filter · enter save · q quit")
-            .dim()
-            .to_string()];
-        if self.filtering || !self.query.is_empty() {
-            let caret = if self.filtering { "_" } else { "" };
-            lines.push(format!("Filter: {}{caret}", self.query));
+        let on = self.enabled.iter().filter(|&&e| e).count();
+        let mut lines = vec![format!(
+            "{}  {}",
+            style("Skills").magenta().bold(),
+            style(format!("{on} of {} enabled", self.names.len())).dim()
+        )];
+        if self.filtering {
+            lines.push(format!(
+                "{} {}{}  {}",
+                style("/").yellow().bold(),
+                style(&self.query).bold(),
+                style("█").yellow(),
+                style("esc to clear").dim()
+            ));
+        } else if !self.query.is_empty() {
+            lines.push(format!(
+                "{} {}",
+                style("filter:").yellow(),
+                style(&self.query).bold()
+            ));
         }
 
         let visible = self.visible();
         if visible.is_empty() {
-            lines.push("  No skills match".to_string());
+            lines.push(style("  No skills match").dim().italic().to_string());
         }
-        let height = rows.saturating_sub(lines.len() + 1).max(1);
+        // Reserve the blank + hint footer lines and one spare row.
+        let height = rows.saturating_sub(lines.len() + 3).max(1);
         let start = (self.cursor + 1).saturating_sub(height);
         for (pos, &i) in visible.iter().enumerate().skip(start).take(height) {
             let current = pos == self.cursor && !self.filtering;
-            let marker = if current { ">" } else { " " };
-            let check = if self.enabled[i] { "[x]" } else { "[ ]" };
-            let line = format!("{marker} {check} {}", self.names[i]);
-            let line = truncate_str(&line, cols, "…");
-            if current {
-                lines.push(style(line).cyan().to_string());
+            let name = truncate_str(&self.names[i], cols.saturating_sub(6), "…");
+            let marker = if current {
+                style("❯").cyan().bold()
             } else {
-                lines.push(line.into_owned());
-            }
+                style(" ")
+            };
+            let check = if self.enabled[i] {
+                style("[x]").green().bold()
+            } else {
+                style("[ ]").dim()
+            };
+            let name = if current {
+                style(name).cyan().bold()
+            } else if self.enabled[i] {
+                style(name)
+            } else {
+                style(name).dim()
+            };
+            lines.push(format!("{marker} {check} {name}"));
         }
+
+        lines.push(String::new());
+        lines.push(if self.filtering {
+            hints(&[("type", "search"), ("enter", "apply"), ("esc", "clear")])
+        } else if !self.query.is_empty() {
+            hints(&[
+                ("↑↓", "move"),
+                ("space", "toggle"),
+                ("/", "edit"),
+                ("esc", "clear"),
+                ("enter", "save"),
+                ("q", "quit"),
+            ])
+        } else {
+            hints(&[
+                ("↑↓", "move"),
+                ("space", "toggle"),
+                ("/", "filter"),
+                ("enter", "save"),
+                ("q", "quit"),
+            ])
+        });
         lines
     }
+}
+
+/// Formats `(key, action)` pairs as a styled footer line.
+fn hints(pairs: &[(&str, &str)]) -> String {
+    pairs
+        .iter()
+        .map(|(key, action)| format!("{} {}", style(key).cyan().bold(), style(action).dim()))
+        .collect::<Vec<_>>()
+        .join("  ")
 }
 
 #[cfg(test)]
@@ -283,6 +344,16 @@ mod tests {
     }
 
     #[test]
+    fn escape_clears_applied_filter_before_quitting() {
+        let mut p = picker(&["alpha", "beta"]);
+        type_str(&mut p, "/al");
+        p.handle(Key::Enter);
+        assert_eq!(p.handle(Key::Escape), None);
+        assert_eq!(p.query, "");
+        assert_eq!(p.handle(Key::Escape), Some(Outcome::Quit));
+    }
+
+    #[test]
     fn backspace_edits_query() {
         let mut p = picker(&["alpha", "beta"]);
         type_str(&mut p, "/alx");
@@ -300,6 +371,19 @@ mod tests {
         p.handle(Key::Char('/'));
         p.handle(Key::Escape);
         assert_eq!(p.enabled, vec![false, false, true]);
+    }
+
+    #[test]
+    fn filter_mode_shows_how_to_clear() {
+        let mut p = picker(&["alpha"]);
+        let shows_clear = |p: &Picker| {
+            p.render(20, 80)
+                .iter()
+                .any(|l| l.contains("esc") && l.contains("clear"))
+        };
+        assert!(!shows_clear(&p));
+        type_str(&mut p, "/al");
+        assert!(shows_clear(&p));
     }
 
     #[test]

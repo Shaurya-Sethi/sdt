@@ -190,6 +190,7 @@ mod tests {
         let mut reg = Registry::empty().unwrap();
         reg.skills
             .insert("gone".into(), SkillEntry { enabled: true });
+        reg.packs.insert("p".into(), ["gone".to_string()].into());
         crate::registry::write(&reg).unwrap();
 
         let dir = skills.join("stay");
@@ -200,5 +201,7 @@ mod tests {
         let reg = crate::registry::ensure_loaded().unwrap();
         assert!(!reg.skills.contains_key("gone"));
         assert!(reg.skills.contains_key("stay"));
+        // Pack members survive so a reinstalled skill rejoins its pack.
+        assert!(reg.packs["p"].contains("gone"));
     }
 }

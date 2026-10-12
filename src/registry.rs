@@ -1,6 +1,6 @@
 //! Skills registry — source of truth for enable/disable intent.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
 use std::io;
 use std::path::Path;
@@ -29,6 +29,10 @@ pub struct Registry {
     #[serde(rename = "canonicalDir")]
     pub canonical_dir: String,
     pub skills: BTreeMap<String, SkillEntry>,
+    /// Named skill packs mapped to their member skill names. Members may name
+    /// skills that are no longer installed; `sync` never prunes them.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub packs: BTreeMap<String, BTreeSet<String>>,
 }
 
 impl Registry {
@@ -39,6 +43,7 @@ impl Registry {
             version: REGISTRY_VERSION,
             canonical_dir: dir.to_string_lossy().into_owned(),
             skills: BTreeMap::new(),
+            packs: BTreeMap::new(),
         })
     }
 }
@@ -250,5 +255,20 @@ mod tests {
         let loaded: Registry = serde_json::from_str(&data).unwrap();
         assert_eq!(loaded.skills.get("foo").map(|e| e.enabled), Some(false));
         assert!(data.contains("canonicalDir"));
+        assert!(!data.contains("packs"));
+    }
+
+    #[test]
+    fn packs_roundtrip_and_default_when_absent() {
+        let (_tmp, _skills, _home) = setup();
+        let mut reg = Registry::empty().unwrap();
+        reg.packs
+            .insert("fe".into(), ["a".to_string(), "b".to_string()].into());
+        write(&reg).unwrap();
+        assert_eq!(read_from_disk().unwrap(), reg);
+
+        let old: Registry =
+            serde_json::from_str(r#"{"version":1,"canonicalDir":"/x","skills":{}}"#).unwrap();
+        assert!(old.packs.is_empty());
     }
 }

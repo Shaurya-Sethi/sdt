@@ -1,4 +1,5 @@
-//! Informational health checks for registry and SKILL.md drift.
+//! Informational health checks for registry and SKILL.md drift, and for pack
+//! members that are not installed.
 
 use std::collections::BTreeSet;
 use std::io;
@@ -7,6 +8,7 @@ use thiserror::Error;
 
 use crate::discovery::{has_skill_md, list_skill_dirs, skill_md_path, skill_name};
 use crate::frontmatter::{is_disabled, parse_skill_md};
+use crate::pack::split_members;
 use crate::registry::read_from_disk;
 
 #[derive(Debug, Error)]
@@ -82,6 +84,19 @@ pub fn gather_warnings() -> Result<Vec<String>, DoctorError> {
         if entry.enabled && frontmatter_disabled {
             warnings.push(format!(
                 "warning: registry says '{name}' is enabled but SKILL.md has disable-model-invocation"
+            ));
+        }
+    }
+
+    let installed: Vec<String> = dirs
+        .iter()
+        .filter(|d| has_skill_md(d))
+        .filter_map(|d| skill_name(d))
+        .collect();
+    for (pack, members) in &registry.packs {
+        for member in split_members(members, &installed).1 {
+            warnings.push(format!(
+                "warning: pack '{pack}' member '{member}' is not installed"
             ));
         }
     }
@@ -248,6 +263,26 @@ mod tests {
         assert!(warnings
             .iter()
             .any(|w| w.contains("could not parse SKILL.md for 'broken'")));
+    }
+
+    #[test]
+    fn warns_on_missing_pack_member() {
+        let (_tmp, skills, _home) = setup();
+        let dir = skills.join("here");
+        fs::create_dir(&dir).unwrap();
+        fs::write(dir.join("SKILL.md"), "# x\n").unwrap();
+
+        let mut reg = Registry::empty().unwrap();
+        reg.skills
+            .insert("here".into(), SkillEntry { enabled: true });
+        reg.packs
+            .insert("p".into(), ["here", "gone"].map(String::from).into());
+        write(&reg).unwrap();
+
+        assert_eq!(
+            gather_warnings().unwrap(),
+            vec!["warning: pack 'p' member 'gone' is not installed"]
+        );
     }
 
     #[test]

@@ -32,6 +32,17 @@ pub fn list_skill_dirs() -> io::Result<Vec<PathBuf>> {
     Ok(dirs)
 }
 
+/// Lists the names of skills that have a `SKILL.md`, sorted.
+///
+/// These are the skills users can toggle; folders without `SKILL.md` are skipped.
+pub fn list_skill_names() -> io::Result<Vec<String>> {
+    Ok(list_skill_dirs()?
+        .iter()
+        .filter(|d| has_skill_md(d))
+        .filter_map(|d| skill_name(d))
+        .collect())
+}
+
 /// Returns the path to `SKILL.md` inside a skill directory.
 pub fn skill_md_path(skill_dir: &Path) -> PathBuf {
     skill_dir.join("SKILL.md")
@@ -94,5 +105,17 @@ mod tests {
         assert!(!has_skill_md(&dir));
         fs::write(skill_md_path(&dir), "# Foo").unwrap();
         assert!(has_skill_md(&dir));
+    }
+
+    #[test]
+    fn list_skill_names_returns_sorted_names_with_skill_md() {
+        let (_tmp, skills, _home) = setup();
+        for name in ["beta", "alpha"] {
+            fs::create_dir(skills.join(name)).unwrap();
+            fs::write(skills.join(name).join("SKILL.md"), "# x\n").unwrap();
+        }
+        fs::create_dir(skills.join("empty")).unwrap();
+
+        assert_eq!(list_skill_names().unwrap(), vec!["alpha", "beta"]);
     }
 }

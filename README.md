@@ -43,11 +43,18 @@ The TUI updates the registry only. You must run `sync` to apply changes to disk.
 
 ### `sdt`
 
-Interactive checklist of skills that have a `SKILL.md` file.
+Interactive checklist of skills that have a `SKILL.md` file, shown immediately.
 
-- Optional filter: case-insensitive substring on folder name (press Enter for all).
+| Key | Action |
+|-----|--------|
+| `↑`/`↓`, `k`/`j` | Move |
+| `Space` | Toggle skill |
+| `/` | Filter by folder name (case-insensitive substring); `Enter` applies, `Esc` clears |
+| `Enter` | Save (after confirmation) |
+| `q`, `Esc` | Quit without saving |
+
 - Checked items are **enabled**; unchecked are **disabled** for automatic invocation in compatible agents.
-- Confirm to save the registry; cancel leaves existing choices unchanged.
+- Toggles persist across filter changes; saving writes every skill's state.
 
 ### `sdt sync`
 

@@ -89,8 +89,9 @@ pub fn gather_warnings() -> Result<Vec<String>, DoctorError> {
     Ok(warnings)
 }
 
-/// Runs all doctor checks, printing warnings to stdout. Prints `all good` when
-/// no issues are found. Always returns `Ok`.
+/// Prints warnings, or `all good` when no issues are found, without changing files.
+///
+/// Warnings are informational; registry and discovery errors are returned.
 pub fn run_doctor() -> Result<(), DoctorError> {
     let warnings = gather_warnings()?;
     if warnings.is_empty() {

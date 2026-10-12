@@ -16,7 +16,7 @@ Installed skills can add descriptions to agent context even when you rarely use 
 cargo install --path .
 ```
 
-The binary lands in `~/.cargo/bin/sdt`. Ensure that directory is on your `PATH`, or copy the release build to `~/.local/bin/`.
+The binary lands in `~/.cargo/bin/sdt`. Ensure that directory is on your `PATH`.
 
 Build from source:
 
@@ -47,21 +47,21 @@ Interactive checklist of skills that have a `SKILL.md` file.
 
 - Optional filter: case-insensitive substring on folder name (press Enter for all).
 - Checked items are **enabled**; unchecked are **disabled** for automatic invocation in compatible agents.
-- Confirm to save the registry; cancel discards changes.
+- Confirm to save the registry; cancel leaves existing choices unchanged.
 
 ### `sdt sync`
 
 Reads `~/.agents/skills-registry.json` and updates each skill's `SKILL.md`:
 
-- **Disabled** — sets `disable-model-invocation: true` in frontmatter. If the file has no frontmatter, prepends a minimal block with `name` and the flag.
-- **Enabled** — removes the flag. If the frontmatter block was injection-only, strips it entirely.
+- **Disabled** — sets `disable-model-invocation: true`. Adds a `name` when missing; files without frontmatter receive a minimal block.
+- **Enabled** — removes the flag. A disabled block containing only `name` and the flag is stripped entirely.
 - **Missing folder** — removes the stale registry entry.
 
-Other frontmatter fields (`description`, `paths`, etc.) are preserved.
+Other frontmatter values and the Markdown body are preserved. Modified frontmatter is reserialized, so YAML formatting and comments are not preserved.
 
 ### `sdt doctor`
 
-Prints warnings for inconsistent state. Always exits 0 — informational only.
+Prints warnings for inconsistent state. Warnings exit 0; registry or discovery errors exit nonzero. It does not create or modify the registry.
 
 | Warning | Meaning |
 |---------|---------|
@@ -69,8 +69,8 @@ Prints warnings for inconsistent state. Always exits 0 — informational only.
 | Folder with `SKILL.md`, not in registry | New skill not yet merged into registry |
 | Folder without `SKILL.md` | Empty or incomplete skill directory |
 | Registry disabled, no flag on disk | Run `sync` |
-| Registry enabled, flag on disk | Run `sync` (often after `npx skills update`) |
-| Unreadable `SKILL.md` | Permission or parse error |
+| Registry enabled, flag on disk | Run `sync` (often after a skill update) |
+| Unreadable or invalid `SKILL.md` | Permission or parse error |
 
 ## How it works
 
@@ -82,7 +82,7 @@ sdt (TUI) → ~/.agents/skills-registry.json → sdt sync → ~/.agents/skills/*
 - **Sync** applies that intent to shared files on disk.
 - **Compatible agents** interpret the frontmatter when loading skills.
 
-On first run of any command, the registry is created automatically by scanning `~/.agents/skills/`. Skills with `disable-model-invocation: true` are imported as disabled; everything else defaults to enabled. New skill folders are merged in on later runs.
+On first TUI or sync run, the registry is created by scanning the store. Skills with `disable-model-invocation: true` are imported as disabled; other readable, valid files default to enabled. Unreadable or invalid files are imported as disabled, and sync reports an error if it cannot process them. New skill folders are merged on later TUI/sync runs.
 
 ## Agent compatibility
 
@@ -97,10 +97,10 @@ For example, [Claude Code documents this field](https://code.claude.com/docs/en/
 
 ## Working with `npx skills`
 
-`npx skills` installs to `~/.agents/skills/<name>/` and owns `~/.agents/.skill-lock.json`. `sdt` does not touch the lock file.
+`npx skills` installs shared skills under `~/.agents/skills/<name>/` and manages `~/.agents/.skill-lock.json`. `sdt` does not touch the lock file.
 
-- **`npx skills add`** — new skills default to enabled until you disable them in `sdt`.
-- **`npx skills update`** — may reset frontmatter. Run `sdt sync` afterward to restore disable state from the registry.
+- **`npx skills add`** — new skills import their current frontmatter state when next discovered.
+- **`npx skills update`** — may reset frontmatter. Run `sdt sync` afterward to restore registry choices.
 
 Recommended shell helpers:
 
@@ -109,11 +109,11 @@ skills-add()    { npx skills add "$@" && sdt sync; }
 skills-update() { npx skills update "$@" && sdt sync; }
 ```
 
-Do not move skills out of `~/.agents/skills/` or edit `.skill-lock.json` by hand.
+Do not move skills out of the shared store or edit `.skill-lock.json` by hand.
 
 ## Scope
 
-- Immediate, non-hidden skill directories in `~/.agents/skills/` only.
+- Immediate, non-hidden skill directories in `~/.agents/skills/` only; symlinked skill directories are currently skipped.
 - No built-in, plugin-delivered, project-level, or separate agent-specific stores.
 - No importing or writing agent configuration, per-agent profiles, or `enable` / `disable` / `list` subcommands.
 
@@ -121,11 +121,9 @@ Do not move skills out of `~/.agents/skills/` or edit `.skill-lock.json` by hand
 
 ```bash
 cargo test
-cargo fmt
-cargo clippy -- -D warnings
+cargo fmt --check
+cargo clippy --all-targets -- -D warnings
 ```
-
-Implementation details and design decisions are in [docs/PLAN.md](docs/PLAN.md).
 
 ## License
 

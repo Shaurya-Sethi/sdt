@@ -15,4 +15,5 @@
 - always read documentation before changing code or implementing anything new.
   - official upstream docs — use web search or browse local source.
   - current repo code, tests, public interfaces.
-  - docs/PLAN.md (keep updated)
+  - relevant architectural decision records or user-facing behavior docs in docs/, when present.
+- keep short user-facing documentation in README.md; use docs/ only for architectural decisions or behavior topics that need more detail, linked from README.md.

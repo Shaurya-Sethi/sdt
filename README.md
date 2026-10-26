@@ -1,24 +1,28 @@
-# sdt — Skill Discovery Toggle
+# sdt - Skill Discovery Toggle
 
 An agent-agnostic CLI to enable and disable automatic skill discovery without deleting shared skill files.
 
+Toggle skill discovery individually or group skills into **packs**, such as `frontend`, and toggle a whole set together.
+
+![sdt terminal demo showing skill toggles, search, enabling a pack, and listing saved enabled skills](assets/sdt-demo.gif)
+
 Skills stay in `~/.agents/skills/`. `sdt` records your choices in a registry and applies them through `disable-model-invocation` in each skill's `SKILL.md`.
 
-**Agent compatibility matters:** the toggle works only for agents that read this store (directly or through symlinks) and honor that frontmatter field. It is not a universal agent-disable mechanism or a per-agent setting.
+**[Agent compatibility matters](#agent-compatibility):** the toggle works only for harnesses that read this store (directly or through symlinks) and honor that frontmatter field. It is not a universal agent-disable mechanism or a per-agent setting.
 
 ## Why
 
-Installed skills can add descriptions to agent context even when you rarely use them. Keep one shared skill store, choose which skills are available for automatic invocation, and restore those choices after skill updates.
+Installed skills add descriptions to agent context even when you rarely use them. Keep one shared skill store, choose which skills are available for automatic invocation, and restore those choices after skill updates.
 
 ## Install
 
 ```bash
-cargo install --path .
+cargo install sdt
 ```
 
 The binary lands in `~/.cargo/bin/sdt`. Ensure that directory is on your `PATH`.
 
-Build from source:
+Or build from source:
 
 ```bash
 cargo build --release
@@ -28,7 +32,7 @@ cargo build --release
 ## Quick start
 
 ```bash
-sdt                                  # interactive toggle for skills and packs
+sdt                                  # interactive tui
 sdt disable azure-devops             # toggle skills by name
 sdt pack add frontend design-review ui-polish
 sdt pack enable frontend --only      # just the frontend skills
@@ -94,9 +98,9 @@ sdt pack disable <pack>...
 
 Reads `~/.agents/skills-registry.json` and updates each skill's `SKILL.md`. Other commands sync automatically; run it directly to restore registry choices (for example after `npx skills update`).
 
-- **Disabled** — sets `disable-model-invocation: true`. Adds a `name` when missing; files without frontmatter receive a minimal block.
-- **Enabled** — removes the flag. A disabled block containing only `name` and the flag is stripped entirely.
-- **Missing folder** — removes the stale registry entry. Pack membership is kept, so a reinstalled skill rejoins its packs.
+- **Disabled:** sets `disable-model-invocation: true`. Adds a `name` when missing; files without frontmatter receive a minimal block.
+- **Enabled:** removes the flag. A disabled block containing only `name` and the flag is stripped entirely.
+- **Missing folder:** removes the stale registry entry. Pack membership is kept, so a reinstalled skill rejoins its packs.
 
 Other frontmatter values and the Markdown body are preserved. Modified frontmatter is reserialized, so YAML formatting and comments are not preserved.
 
@@ -128,6 +132,8 @@ On the first run of any command except `doctor`, the registry is created by scan
 
 ## Agent compatibility
 
+Manually verified with **Claude Code**, **Codex**, **Pi**, **Grok Build**, **Antigravity CLI**, **Cursor CLI**, **GitHub Copilot**, and **OpenCode**. These reports reflect my shared-store setup; compatibility can vary by agent version and configuration.
+
 `disable-model-invocation` is an agent extension, not a field in the core [Agent Skills specification](https://agentskills.io/specification).
 
 - Agents honoring the field can exclude disabled skills from automatic invocation. Manual invocation may remain available; this is not an access-control boundary.
@@ -135,38 +141,17 @@ On the first run of any command except `doctor`, the registry is created by scan
 - Agents using separate skill stores are unaffected unless those stores point to these same files.
 - Every compatible agent reading the shared files sees the same choices; `sdt` does not maintain per-agent profiles or edit agent configuration.
 
-For example, [Claude Code documents this field](https://code.claude.com/docs/en/skills#control-who-invokes-a-skill), while [Codex documents its own configuration-based toggle](https://developers.openai.com/codex/skills/). Check your agent's documentation rather than assuming support.
-
 ## Working with `npx skills`
 
-`npx skills` installs shared skills under `~/.agents/skills/<name>/` and manages `~/.agents/.skill-lock.json`. `sdt` does not touch the lock file.
+**Recommended setup:** Install skills globally with `npx skills` into `~/.agents/skills/`, choosing symlinks for your other agents rather than copies. This keeps them pointed at the same files managed by `sdt`.
 
-- **`npx skills add`** — new skills import their current frontmatter state when next discovered.
-- **`npx skills update`** — may reset frontmatter. Run `sdt sync` afterward to restore registry choices.
+`npx skills` manages `~/.agents/.skill-lock.json`. `sdt` does not touch the lock file.
 
-Recommended shell helpers:
-
-```bash
-skills-add()    { npx skills add "$@" && sdt sync; }
-skills-update() { npx skills update "$@" && sdt sync; }
-```
+- **`npx skills add`:** new skills import their current frontmatter state when next discovered.
+- **`npx skills update`:** may reset frontmatter. Run `sdt sync` afterward to restore registry choices.
 
 Do not move skills out of the shared store or edit `.skill-lock.json` by hand.
 
-## Scope
-
-- Immediate, non-hidden skill directories in `~/.agents/skills/` only; symlinked skill directories are currently skipped.
-- No built-in, plugin-delivered, project-level, or separate agent-specific stores.
-- No importing or writing agent configuration or per-agent profiles.
-
-## Development
-
-```bash
-cargo test
-cargo fmt --check
-cargo clippy --all-targets -- -D warnings
-```
-
 ## License
 
-MIT
+MIT. Contributions are welcome; please open an issue first!

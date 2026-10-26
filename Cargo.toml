@@ -1,6 +1,6 @@
 [package]
 name = "sdt"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 description = "Skill Discovery Toggle: manage shared agent skills via SKILL.md frontmatter"
 license = "MIT"

@@ -4,7 +4,7 @@ An agent-agnostic CLI to enable and disable automatic skill discovery without de
 
 Toggle skill discovery individually or group skills into **packs**, such as `frontend`, and toggle a whole set together.
 
-![sdt terminal demo showing skill toggles, search, enabling a pack, and listing saved enabled skills](assets/sdt-demo.gif)
+![sdt terminal demo showing skill toggles, search, enabling a pack, and listing saved enabled skills](https://raw.githubusercontent.com/Shaurya-Sethi/sdt/v0.1.1/assets/sdt-demo.gif)
 
 Skills stay in `~/.agents/skills/`. `sdt` records your choices in a registry and applies them through `disable-model-invocation` in each skill's `SKILL.md`.
 
@@ -79,7 +79,7 @@ Unknown skill names are an error (exit 1) and nothing is written. `--json` print
 
 ### `sdt pack`
 
-Packs are named sets of skills toggled together, e.g. `frontend`, `azure-devops`, `media`. See [docs/packs.md](docs/packs.md) for semantics.
+Packs are named sets of skills toggled together, e.g. `frontend`, `azure-devops`, `media`. See [docs/packs.md](https://github.com/Shaurya-Sethi/sdt/blob/v0.1.1/docs/packs.md) for semantics.
 
 ```bash
 sdt pack list [--json]               # name [on|off|mixed] members (missing: ...)

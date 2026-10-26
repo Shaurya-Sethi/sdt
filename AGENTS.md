@@ -11,7 +11,7 @@
 - codebase should be easy to change and testable.
 - always prefer simplicity and keep implementations minimal and direct; never over-engineer, defensively handle hypothetical edge-cases, or make complex abstractions.
 
-- follow pragmatic test driven development using the `tdd` skill.
+- follow pragmatic test driven development.
 - always read documentation before changing code or implementing anything new.
   - official upstream docs — use web search or browse local source.
   - current repo code, tests, public interfaces.
